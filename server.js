@@ -34,20 +34,33 @@ app.use(express.static("public"));
 // By default mongoose uses callbacks for async queries, we're setting it to use promises (.then syntax) instead
 // Connect to the Mongo DB
 mongoose.Promise = Promise;
-mongoose.connect("mongodb://localhost/week18Populater", {});
+mongoose.connect("mongodb://localhost/ArticleScraper", {});
 
 // Routes
 
 // A GET route for scraping the echojs website
 app.get("/", function(req, res) {
   // db.all(function(data) {
-  //   var hbsObject = {
-  //     cats: data
-  //   };
-  //   console.log(hbsObject);
-  //   res.render("index", hbsObject);
+    // var hbsObject = {
+    //   cats: data
+    // };
+    // console.log(hbsObject);
+    // res.render("index", hbsObject);
   // });
-  res.render("index");
+  // res.render("index");
+
+  db.Article.find({})
+  .then(function(dbArticle) {
+    // If we were able to successfully find Articles, send them back to the client
+    var hbsObject = {
+      articles: dbArticle
+    };
+    res.render("index", hbsObject);
+  })
+  .catch(function(err) {
+    // If an error occurred, send it to the client
+    res.json(err);
+  });
 });
 
 app.get("/scrape", function(req, res) {
@@ -57,39 +70,44 @@ app.get("/scrape", function(req, res) {
     var $ = cheerio.load(response.data);
 
     // Now, we grab every h2 within an article tag, and do the following:
-    $("h2").each(function(i, element) {
+    $(".c-entry-box--compact__body").each(function(i, element) {
       // Save an empty result object
       var result = {};
 
       console.log(result);
       // Add the text and href of every link, and save them as properties of the result object
       result.title = $(this)
+        .children("h2")
         .children("a")
         .text();
+
       result.link = $(this)
+        .children("h2")
         .children("a")
         .attr("href");
 
       result.author = $(this)
+        .children("div")
+        .children("span")
         .children("a")
         .text();
 
-      console.log(result.link, result.author, result.title);
+      // console.log(result.link, result.author, result.title);
 
-      // Create a new Article using the `result` object built from scraping
-      // db.Article.create(result)
-      //   .then(function(dbArticle) {
-      //     // View the added result in the console
-      //     console.log(dbArticle);
-      //   })
-      //   .catch(function(err) {
-      //     // If an error occurred, send it to the client
-      //     return res.json(err);
-      //   });
+      //Create a new Article using the `result` object built from scraping
+      db.Article.create(result)
+        .then(function(dbArticle) {
+          // View the added result in the console
+          console.log(dbArticle);
+        })
+        .catch(function(err) {
+          // If an error occurred, send it to the client
+          return res.json(err);
+        });
     });
 
     // If we were able to successfully scrape and save an Article, send a message to the client
-    res.send(this);
+    res.send("success");
   });
 });
 
