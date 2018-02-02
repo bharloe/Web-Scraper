@@ -1,6 +1,6 @@
 ### Web Scraper
 
-A fullstack app storing web scrape results in a NoSQL database
+A fullstack app that stores web scrape results in a NoSQL database
 
 ### To test the app, visit this URL: 
 
