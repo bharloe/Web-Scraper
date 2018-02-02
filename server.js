@@ -40,74 +40,67 @@ mongoose.connect("mongodb://localhost/ArticleScraper", {});
 
 // A GET route for scraping the echojs website
 app.get("/", function(req, res) {
-  // db.all(function(data) {
-    // var hbsObject = {
-    //   cats: data
-    // };
-    // console.log(hbsObject);
-    // res.render("index", hbsObject);
-  // });
-  // res.render("index");
-
   db.Article.find({})
-  .then(function(dbArticle) {
-    // If we were able to successfully find Articles, send them back to the client
-    var hbsObject = {
-      articles: dbArticle
-    };
-    res.render("index", hbsObject);
-  })
-  .catch(function(err) {
-    // If an error occurred, send it to the client
-    res.json(err);
-  });
+    .then(function(dbArticle) {
+      // If we were able to successfully find Articles, send them back to the client
+      var hbsObject = {
+        articles: dbArticle
+      };
+      res.render("index", hbsObject);
+    })
+    .catch(function(err) {
+      // If an error occurred, send it to the client
+      res.json(err);
+    });
 });
 
 app.get("/scrape", function(req, res) {
-  // First, we grab the body of the html with request
-  axios.get("https://www.vox.com/").then(function(response) {
-    // Then, we load that into cheerio and save it to $ for a shorthand selector
-    var $ = cheerio.load(response.data);
+  db.Article.remove({}, function(err, removed) {
+    // First, we grab the body of the html with request
+    axios.get("https://www.vox.com/").then(function(response) {
+      // Then, we load that into cheerio and save it to $ for a shorthand selector
+      var $ = cheerio.load(response.data);
 
-    // Now, we grab every h2 within an article tag, and do the following:
-    $(".c-entry-box--compact__body").each(function(i, element) {
-      // Save an empty result object
-      var result = {};
+      // Now, we grab every h2 within an article tag, and do the following:
+      $(".c-entry-box--compact__body").each(function(i, element) {
+        // Save an empty result object
+        var result = {};
 
-      console.log(result);
-      // Add the text and href of every link, and save them as properties of the result object
-      result.title = $(this)
-        .children("h2")
-        .children("a")
-        .text();
+        console.log(result);
+        // Add the text and href of every link, and save them as properties of the result object
+        result.title = $(this)
+          .children("h2")
+          .children("a")
+          .text();
 
-      result.link = $(this)
-        .children("h2")
-        .children("a")
-        .attr("href");
+        result.link = $(this)
+          .children("h2")
+          .children("a")
+          .attr("href");
 
-      result.author = $(this)
-        .children("div")
-        .children("span")
-        .children("a")
-        .text();
+        result.author = $(this)
+          .children("div")
+          .children("span")
+          .children("a")
+          .text();
 
-      // console.log(result.link, result.author, result.title);
+        // console.log(result.link, result.author, result.title);
 
-      //Create a new Article using the `result` object built from scraping
-      db.Article.create(result)
-        .then(function(dbArticle) {
-          // View the added result in the console
-          console.log(dbArticle);
-        })
-        .catch(function(err) {
-          // If an error occurred, send it to the client
-          return res.json(err);
-        });
+        //Create a new Article using the `result` object built from scraping
+        db.Article.create(result)
+          .then(function(dbArticle) {
+            // View the added result in the console
+            console.log(dbArticle);
+          })
+          .catch(function(err) {
+            // If an error occurred, send it to the client
+            return res.json(err);
+          });
+      });
+
+      // If we were able to successfully scrape and save an Article, send a message to the client
+      res.send("success <a href='/'>return home</a>");
     });
-
-    // If we were able to successfully scrape and save an Article, send a message to the client
-    res.send("success");
   });
 });
 
@@ -127,13 +120,14 @@ app.get("/articles", function(req, res) {
 
 // Route for grabbing a specific Article by id, populate it with it's note
 app.get("/articles/:id", function(req, res) {
-  // Using the id passed in the id parameter, prepare a query that finds the matching one in our db...
   db.Article.findOne({ _id: req.params.id })
-    // ..and populate all of the notes associated with it
-    .populate("note")
+    .populate("articlecomment")
     .then(function(dbArticle) {
-      // If we were able to successfully find an Article with the given id, send it back to the client
-      res.json(dbArticle);
+      // If we were able to successfully find Articles, send them back to the client
+      var hbsObject = {
+        articles: dbArticle
+      };
+      res.render("comments", dbArticle);
     })
     .catch(function(err) {
       // If an error occurred, send it to the client
@@ -144,7 +138,7 @@ app.get("/articles/:id", function(req, res) {
 // Route for saving/updating an Article's associated Note
 app.post("/articles/:id", function(req, res) {
   // Create a new note and pass the req.body to the entry
-  db.Note.Note.create(req.body)
+  db.Comment.create(req.body)
     .then(function(dbNote) {
       // If a Note was created successfully, find one Article with an `_id` equal to `req.params.id`. Update the Article to be associated with the new Note
       // { new: true } tells the query that we want it to return the updated User -- it returns the original by default
