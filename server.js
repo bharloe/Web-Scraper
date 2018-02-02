@@ -34,8 +34,12 @@ app.use(express.static("public"));
 // By default mongoose uses callbacks for async queries, we're setting it to use promises (.then syntax) instead
 // Connect to the Mongo DB
 mongoose.Promise = Promise;
-mongoose.connect("mongodb://localhost/ArticleScraper", {});
 
+if (process.env.MONGODB_URI) {
+  mongoose.connect(process.env.MONGODB_URI, {});
+} else {
+  mongoose.connect("mongodb://localhost/ArticleScraper", {});
+}
 // Routes
 
 // A GET route for scraping the echojs website
@@ -121,7 +125,7 @@ app.get("/articles", function(req, res) {
 // Route for grabbing a specific Article by id, populate it with it's note
 app.get("/articles/:id", function(req, res) {
   db.Article.findOne({ _id: req.params.id })
-  //.populate("test") WHY DOES THIS WORK, set "Comment" in Article.js = to "comment", that breaks .populate("comment"), but not .populate("test")
+    //.populate("test") WHY DOES THIS WORK, set "Comment" in Article.js = to "comment", that breaks .populate("comment"), but not .populate("test")
     .populate("comment")
     .then(function(dbArticle) {
       // If we were able to successfully find Articles, send them back to the client
